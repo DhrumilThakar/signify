@@ -12,7 +12,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_width="240dp"
         android:layout_height="160dp"
-        android:src="@drawable/icon_small"
+        android:src="@drawable/signify"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -24,7 +24,7 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Synaera"
+        android:text="Signify"
         android:textSize="30sp"
         android:textColor="@color/black"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -89,7 +89,6 @@
         app:layout_constraintEnd_toStartOf="@+id/rightGuide"
         app:layout_constraintStart_toStartOf="@+id/leftGuide"
         app:layout_constraintTop_toBottomOf="@+id/passwordEditText" />
-
 
     <LinearLayout
         android:layout_width="wrap_content"
