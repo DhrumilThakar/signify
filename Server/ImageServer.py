@@ -219,9 +219,10 @@ def addUserSession(sid, username):
 	activeUsers[username] = sid
 
 def deleteUserSession(sid):
-	username = activeSessions[sid]
-	activeSessions.pop(sid, None)
-	activeUsers.pop(username, None)
+	username = activeSessions.get(sid)
+	if username:
+		activeSessions.pop(sid, None)
+		activeUsers.pop(username, None)
 
 def displayImage(username, imageBytes):
 	# Decode image from bytes
@@ -259,5 +260,5 @@ def executeCommandArgs(argv):
 			isAuth = True
 
 if __name__ == '__main__':
-	executeCommandArgs(sys.argv)
-	eventlet.wsgi.server(eventlet.listen((ip, port)), app)
+	# executeCommandArgs(sys.argv)
+	eventlet.wsgi.server(eventlet.listen(('127.0.0.1', 5000)), app)
