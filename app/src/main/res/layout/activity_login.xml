@@ -12,7 +12,7 @@
         android:layout_gravity="center_horizontal"
         android:layout_width="240dp"
         android:layout_height="160dp"
-        android:src="@drawable/signify"
+        android:src="@drawable/icon_small"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

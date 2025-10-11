@@ -19,8 +19,15 @@ public class ServerClient {
 
     private static String EVENT_TRANSCRIPT = "onTranscriptGenerated";
     private Socket mSocket = null;
-    private String mServerIp = "localhost";
-    private int mServerPort = 8080;
+    // --- START OF CHANGES ---
+
+    // 1. Set a placeholder for your computer's IP. Find this using 'ipconfig' in your PC's terminal.
+    private String mServerIp = "192.168.251.24";
+
+    // 2. Set the correct port to match your Python server.
+    private int mServerPort = 5000;
+
+    // --- END OF CHANGES ---
 
     private String mUsername = null;
     private String mPassword = null;
@@ -44,6 +51,8 @@ public class ServerClient {
     public void init(String username, String password, String serverIp, int port) {
         mUsername = username;
         mPassword = password;
+        // Note: The UI input from the app will overwrite the default IP and Port.
+        // The defaults are set above as a fallback.
         mServerIp = serverIp;
         mServerPort = port;
 
@@ -52,18 +61,23 @@ public class ServerClient {
                 IO.Options options = new IO.Options();
                 options.forceNew = true;
                 options.multiplex = true;
-                options.secure = true;
+
+                // --- START OF CHANGES ---
+                // 3. Set to false because the Python server is running on standard HTTP.
+                options.secure = false;
+                // --- END OF CHANGES ---
+
                 options.reconnection = true;
                 options.reconnectionDelay = 5000;
                 options.reconnectionAttempts = 15;
                 options.timeout = 20000;
-//                options.timeout = 15000;
                 String serverAddress = "http://" + mServerIp + ":" + mServerPort;
                 mSocket = IO.socket(serverAddress, options);
-                Log.d(TAG, "ServerClient initialized successfully.");
+                Log.d(TAG, "ServerClient initialized successfully for address: " + serverAddress);
             } catch (URISyntaxException e) {
                 // We failed to connect, consider to inform the user
                 e.printStackTrace();
+                Log.e(TAG, "URISyntaxException: " + e.getMessage());
             }
         } else {
             Log.d(TAG, "ServerClient already initialized. Clearing sockets. Try again...");
@@ -121,9 +135,6 @@ public class ServerClient {
                 attempts++;
             }
         }
-//        else {
-//            Log.d(TAG, "Cannot send frame because socket is null or disconnected");
-//        }
     }
 
     public void startTranscriptProcessing() {
@@ -222,7 +233,7 @@ public class ServerClient {
             if (args.length > 0) {
                 reason = args[0].toString();
             }
-            Log.d(TAG, "Error while trying to connect: " + reason);
+            Log.e(TAG, "Error while trying to connect: " + reason);
         }
     };
 
@@ -242,7 +253,7 @@ public class ServerClient {
             if (args.length > 0) {
                 reason = args[0].toString();
             }
-            Log.d(TAG, "Reconnection failed: " + reason);
+            Log.e(TAG, "Reconnection failed: " + reason);
         }
     };
 
@@ -309,7 +320,7 @@ public class ServerClient {
             if (args.length > 0) {
                 reason = args[0].toString();
             }
-            Log.d(TAG, "Connection timed out! Reason: " + reason);
+            Log.e(TAG, "Connection timed out! Reason: " + reason);
         }
     };
 
@@ -321,7 +332,7 @@ public class ServerClient {
             if (args.length > 0) {
                 reason = args[0].toString();
             }
-            Log.d(TAG, "Something went wrong with the last event: " + reason);
+            Log.e(TAG, "Something went wrong with the last event: " + reason);
         }
     };
 }
