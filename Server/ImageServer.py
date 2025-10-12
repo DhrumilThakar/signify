@@ -16,7 +16,7 @@ sio = socketio.Server()
 app = socketio.WSGIApp(sio)
 
 # Default server IP and server Port
-ip = "0.0.0.0" 
+# FIX: 'ip' is no longer needed, as we will always use '0.0.0.0'
 port = 5000
 
 # Display the image on a OpenCV window
@@ -25,8 +25,8 @@ isDisplay = False
 # Use authentication to validate users
 isAuth = False
 
-# Dummy in-memory key-value pairs user database for dummy authentication using 
-dummyUserDB = { 
+# Dummy in-memory key-value pairs user database for dummy authentication using
+dummyUserDB = {
 	# Add more users as needed
 	"user1": "pass1",
 	"Alice": "123",
@@ -104,7 +104,7 @@ def connect(sid, environ):
 	print('connect', sid)
 	print(activeUsers)
 
-# Method used for user "dummy" authentication using an in-memory dummy database. 
+# Method used for user "dummy" authentication using an in-memory dummy database.
 # This can be used to authenticate the user with other server/service.
 @sio.event
 def authenticate(sid, username, password, clientCallbackEvent):
@@ -120,21 +120,21 @@ def authenticate(sid, username, password, clientCallbackEvent):
 		sio.disconnect(sid)
 		print("User [" + username +"] authentication failed.")
 
-# This is the main method that the client calls when streaming the pictures to 
+# This is the main method that the client calls when streaming the pictures to
 # the server. Each receiveImage event is already processed in a new thread.
-# The image format is JPEG and is sent by the client in as binary data of byte[] 
+# The image format is JPEG and is sent by the client in as binary data of byte[]
 # received in python as Bytes.
 @sio.event
 def receiveImage(sid, imageBytes, clientCallBackEvent):
 	# gloss = cv_model.run_model_frame_batches_filter(imageBytes)
 	# real_text = gloss_to_english2(False)
-	
+
 	# gloss = cv_model.run_model_frame_batches(imageBytes)
 	# real_text = gloss_to_english(False)
-	
+
 	gloss = cv_model.run_model_dup_check(imageBytes)
 	real_text = gloss_to_english2(False)
-	
+
 	if gloss != "nothing":
 		if (len(real_text) == 0):
 			data = {'result': gloss, 'isGloss': True}
@@ -166,7 +166,7 @@ def format_string(sentence):
 	sentence = re.sub(r"(\?\.?)", "?", sentence)
 	return sentence
 
-# This is invoked by the client when a video is uploaded from their gallery 
+# This is invoked by the client when a video is uploaded from their gallery
 def processVideo():
 	# sio.emit(clientCallBackEvent, video_gloss_to_english(cv_model.run_model_on_video()))
 	transcript.append(video_gloss_to_english(cv_model.run_model_on_video()))
@@ -238,20 +238,20 @@ def displayImage(username, imageBytes):
 	cv2.waitKey(1)
 
 def executeCommandArgs(argv):
-	global ip, port, isDisplay, isAuth
+	# This function is now only for optional flags like --display
+	global port, isDisplay, isAuth
 	scriptName = argv[0]
 	try:
-		opts, args = getopt.getopt(argv[1:], "adhi:p:", ["ip=", "port=", "display", "auth"])
+		# FIX: Removed 'i' and 'ip=' as they are no longer needed
+		opts, args = getopt.getopt(argv[1:], "adhp:", ["port=", "display", "auth"])
 	except getopt.GetoptError: # wrong commands
-		print(scriptName + " -i <server_ip> -p <server_port>")
+		print(scriptName + " -p <server_port> --display --auth")
 		sys.exit(2)
 
 	for opt, arg in opts:
 		if opt == "-h": # help command
-			print(scriptName + " -i <server_ip> -p <server_port")
+			print(scriptName + " -p <server_port> --display --auth")
 			sys.exit()
-		elif opt in ("-i", "--ip"):
-			ip = arg
 		elif opt in ("-p", "--port"):
 			port = int(arg)
 		elif opt in ("-d", "--display"):
@@ -260,5 +260,8 @@ def executeCommandArgs(argv):
 			isAuth = True
 
 if __name__ == '__main__':
+	# You can re-enable this if you need to set the port or other flags dynamically
 	# executeCommandArgs(sys.argv)
-	eventlet.wsgi.server(eventlet.listen(('127.0.0.1', 5000)), app)
+
+	# The server now reliably starts on the correct address and port.
+	eventlet.wsgi.server(eventlet.listen(('0.0.0.0', port)), app)

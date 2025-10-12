@@ -1,5 +1,7 @@
 package com.example.signify;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -34,6 +36,8 @@ public class ServerClient {
 
     // A single callback to the client aimed to be registered by the current Activity
     private ServerResultCallback mSingleCallback = null;
+
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private static ServerClient mInstance = null;
 
@@ -274,7 +278,7 @@ public class ServerClient {
         public void call(Object... args) {
             boolean result = (boolean) args[0];
             if(mSingleCallback != null) {
-                mSingleCallback.onConnected(result);
+                mainHandler.post(() -> mSingleCallback.onConnected(result));
             }
             Log.d(TAG, "onAuthentication: " + result);
         }
@@ -283,32 +287,41 @@ public class ServerClient {
     private Emitter.Listener onResponse = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
-            Log.d(TAG, "len of args = "+args.length);
+            Log.d(TAG, "len of args = " + args.length);
             JSONObject data = (JSONObject) args[0];
-            String result = "";
-            boolean isGloss = false;
+            String finalResult = "";
+            boolean finalIsGloss = false;
+
             try {
                 if (data.has("result")) {
-                    result = data.getString("result");
+                    finalResult = data.getString("result");
                 }
                 if (data.has("isGloss")) {
-                    isGloss = data.getBoolean("isGloss");
+                    finalIsGloss = data.getBoolean("isGloss");
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            if (mSingleCallback != null)
-                mSingleCallback.displayResponse(result, isGloss);
-            Log.d(TAG, "onResponse: " + result);
+
+            // Use new variables that are effectively final for the lambda.
+            final String resultForLambda = finalResult;
+            final boolean isGlossForLambda = finalIsGloss;
+
+            if (mSingleCallback != null) {
+                mainHandler.post(() -> mSingleCallback.displayResponse(resultForLambda, isGlossForLambda));
+            }
+
+            Log.d(TAG, "onResponse: " + resultForLambda);
         }
     };
+
 
     private Emitter.Listener onTranscriptGenerated = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
             String result = (String)args[0];
             if (mSingleCallback != null)
-                mSingleCallback.addNewTranscript(result);
+                mainHandler.post(() -> mSingleCallback.addNewTranscript(result));
             Log.d(TAG, "onTranscriptGenerated: " + result);
         }
     };

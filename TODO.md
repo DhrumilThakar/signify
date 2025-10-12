@@ -1,0 +1,4 @@
+- [x] Modify ServerClient.java to use Handler for posting callbacks to main thread
+- [x] Update MainActivity.kt callback methods to remove runOnUiThread wrappers
+- [x] Update CameraFragment.kt callback methods to remove runOnUiThread wrappers
+- [ ] Verify changes compile and run without the error

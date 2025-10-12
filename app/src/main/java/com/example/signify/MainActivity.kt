@@ -259,7 +259,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
 
         recordAnimation.resetAnimation(circleView)
 
-        handler = Handler()
+        handler = Handler(mainLooper) // Use main looper handler for UI animations
         runnable = Runnable {
             recordAnimation.animateStroke(circleView)
             handler.postDelayed(runnable!!, 130)
@@ -277,7 +277,8 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
         Log.d(TAG, "onPause")
         super.onPause()
         if (mIsStreaming) stopStreaming()
-//        mServer!!.unregisterCallback()
+        // It's good practice to unregister the callback in onPause to prevent memory leaks
+        mServer.unregisterCallback()
 //        mServer!!.disconnect()
     }
 
@@ -511,39 +512,46 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
 
     private fun startStreaming() {
         mIsStreaming = true
-        viewBinding.textView.text = ""
-        viewBinding.textView.visibility = View.INVISIBLE
-        if (cameraFacing == CameraSelector.LENS_FACING_FRONT) {
-            Thread {
-                while (mIsStreaming) {
-                    val elapsedTime: Long = System.currentTimeMillis() - mLastTime
-                    if (elapsedTime > mUploadDelay && mUploadDelay != 0L) {   // Bound the image upload based on the user-defined frequency
-                        var byteArray: ByteArray
-                        val bmp = mCameraPreview.bitmap
-                        val bmpScaled = Bitmap.createScaledBitmap(bmp!!, mTargetWidth, mTargetHeight, false)
-                        val bmpFlipped = bmpScaled.flipHorizontally()
-                        byteArray = ImageConverter.BitmaptoJPEG(bmpFlipped)
-                        mServer.sendImage(byteArray)
-                        mLastTime = System.currentTimeMillis()
-                    }
-                }
-            }.start()
+        runOnUiThread {
+            viewBinding.textView.text = ""
+            viewBinding.textView.visibility = View.INVISIBLE
         }
-        else {
-            Thread {
-                while (mIsStreaming) {
-                    val elapsedTime: Long = System.currentTimeMillis() - mLastTime
-                    if (elapsedTime > mUploadDelay && mUploadDelay != 0L) {   // Bound the image upload based on the user-defined frequency
-                        var byteArray: ByteArray
-                        val bmp = mCameraPreview.bitmap
-                        val bmpScaled = Bitmap.createScaledBitmap(bmp!!, mTargetWidth, mTargetHeight, false)
-                        byteArray = ImageConverter.BitmaptoJPEG(bmpScaled)
-                        mServer.sendImage(byteArray)
-                        mLastTime = System.currentTimeMillis()
+
+        Thread {
+            while (mIsStreaming) {
+                val elapsedTime = System.currentTimeMillis() - mLastTime
+                if (elapsedTime > mUploadDelay && mUploadDelay != 0L) {
+                    runOnUiThread {
+                        mCameraPreview.bitmap?.let { bmp ->
+                            cameraExecutor.execute {
+                                val bmpScaled = Bitmap.createScaledBitmap(
+                                    bmp,
+                                    mTargetWidth,
+                                    mTargetHeight,
+                                    false
+                                )
+                                val finalBitmap =
+                                    if (cameraFacing == CameraSelector.LENS_FACING_FRONT) {
+                                        bmpScaled.flipHorizontally()
+                                    } else {
+                                        bmpScaled
+                                    }
+                                val byteArray = ImageConverter.BitmaptoJPEG(finalBitmap)
+                                mServer.sendImage(byteArray)
+                            }
+                        }
                     }
+                    mLastTime = System.currentTimeMillis()
                 }
-            }.start()
-        }
+                try {
+                    // Small delay to prevent the loop from consuming too much CPU
+                    Thread.sleep(50)
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt() // Restore the interrupted status
+                    Log.e(TAG, "Streaming thread interrupted", e)
+                }
+            }
+        }.start()
     }
 
     private fun stopStreaming() {
@@ -557,19 +565,20 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     }
 
     override fun onConnected(success: Boolean) {
-        Log.d(TAG, "ServerResultCallback-onConnected: $success")
+        runOnUiThread {
+            Log.d(TAG, "ServerResultCallback-onConnected: $success")
+        }
     }
 
     override fun displayResponse(result: String, isGloss: Boolean) {
-        Log.d(TAG, "displayResponse in main act: $result")
         runOnUiThread {
+            Log.d(TAG, "displayResponse in main act: $result")
             viewBinding.textView.visibility = View.VISIBLE
             if (isGloss) {
                 if (viewBinding.textView.text.length < 40 && !isRealText) {
                     viewBinding.textView.append(" $result")
                     speakOut(result)
-                }
-                else {
+                } else {
                     viewBinding.textView.text = result
                     speakOut(result)
                 }
@@ -584,11 +593,11 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     }
 
     override fun addNewTranscript(result: String?) {
-        if (result != null) {
-            Log.d(TAG, "result is $result")
-            if (result.isNotEmpty() || result.compareTo("") != 0) {
-                transcriptGenerated = true
-                runOnUiThread {
+        runOnUiThread {
+            if (result != null) {
+                Log.d(TAG, "result is $result")
+                if (result.isNotEmpty()) {
+                    transcriptGenerated = true
                     filesFragment.addTranscript(result)
                 }
             }
@@ -606,7 +615,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     }
     override fun onCurrentFrameExtracted(currentFrame: Frame, decodeCount: Int) {
 //        Thread {
-            // 1. Convert frame byte buffer to bitmap
+        // 1. Convert frame byte buffer to bitmap
         val imageBitmap = fromBufferToBitmap(currentFrame.byteBuffer, currentFrame.width, currentFrame.height)
         val byteArray = ImageConverter.BitmaptoJPEG(imageBitmap)
 
