@@ -13,6 +13,7 @@ import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import io.socket.client.Manager;
+
 public class ServerClient {
     public static String TAG = "ServerClientDebug";
 
@@ -23,7 +24,8 @@ public class ServerClient {
     private Socket mSocket = null;
     // --- START OF CHANGES ---
 
-    // 1. Set a placeholder for your computer's IP. Find this using 'ipconfig' in your PC's terminal.
+    // 1. Set a placeholder for your computer's IP. Find this using 'ipconfig' in
+    // your PC's terminal.
     private String mServerIp = "10.194.160.24";
 
     // 2. Set the correct port to match your Python server.
@@ -34,7 +36,8 @@ public class ServerClient {
     private String mUsername = null;
     private String mPassword = null;
 
-    // A single callback to the client aimed to be registered by the current Activity
+    // A single callback to the client aimed to be registered by the current
+    // Activity
     private ServerResultCallback mSingleCallback = null;
 
     private Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -61,7 +64,7 @@ public class ServerClient {
         mServerPort = port;
 
         if (mSocket == null) {
-            try {   // Try to create the socket with the server
+            try { // Try to create the socket with the server
                 IO.Options options = new IO.Options();
                 options.forceNew = true;
                 options.multiplex = true;
@@ -101,25 +104,35 @@ public class ServerClient {
     /**
      * The connection to the server is explicitly issued by client activities.
      * <p>
-     * Register the socket listeners just before trying to connect, so we can receive feedback
+     * Register the socket listeners just before trying to connect, so we can
+     * receive feedback
      * from the connection state.
      */
     public void connect() {
         if (mSocket != null && !mSocket.connected() && mUsername != null) {
             unregisterSocketListeners();
             registerSocketListeners();
+            Log.d(TAG, "Attempting to connect to: http://" + mServerIp + ":" + mServerPort);
             mSocket.connect();
         } else {
-            Log.d(TAG, "Cannot connect because socket is null or already connected or username isn't defined.");
+            if (mSocket == null) {
+                Log.e(TAG, "Cannot connect: Socket is null. Call init() first.");
+            } else if (mSocket.connected()) {
+                Log.d(TAG, "Already connected to server.");
+            } else if (mUsername == null) {
+                Log.e(TAG, "Cannot connect: Username is not defined.");
+            }
         }
     }
 
     /**
-     * This is  main method issued by the client activity to stream pictures to the server.
+     * This is main method issued by the client activity to stream pictures to the
+     * server.
      */
     public void sendImage(byte[] image) {
         if (mSocket != null && mSocket.connected()) {
             mSocket.emit("receiveImage", image, EVENT_RESPONSE);
+            Log.d(TAG, "✓ Sent frame to server (" + image.length + " bytes)");
         } else {
             Log.d(TAG, "Cannot send message because socket is null or disconnected");
         }
@@ -133,8 +146,7 @@ public class ServerClient {
             if (mSocket != null && mSocket.connected()) {
                 mSocket.emit("receiveVideoStream", image, processedFrameCount);
                 sent = true;
-            }
-            else {
+            } else {
                 Log.d(TAG, "Waiting for client to reconnect...");
                 attempts++;
             }
@@ -158,6 +170,7 @@ public class ServerClient {
             Log.d(TAG, "Cannot check transcript because socket is null or disconnected");
         }
     }
+
     public void getPrediction() {
         if (mSocket != null && mSocket.connected()) {
             mSocket.emit("stopRecord", EVENT_RESPONSE);
@@ -166,11 +179,11 @@ public class ServerClient {
         }
     }
 
-
     /**
      * Client activities might issue an explicit disconnect at anytime.
      * <p>
-     * Unregister the socket listeners after issuing the disconnect to free resources.
+     * Unregister the socket listeners after issuing the disconnect to free
+     * resources.
      */
     public void disconnect() {
         if (mSocket != null) {
@@ -223,7 +236,8 @@ public class ServerClient {
         @Override
         public void call(Object... args) {
             // We connected to the server successfully
-            Log.d(TAG, "Connected to the server! Starting authentication...");
+            Log.d(TAG, "✓ Connected to server successfully!");
+            Log.d(TAG, "Starting authentication with username: " + mUsername);
             mSocket.emit("authenticate", mUsername, mPassword, EVENT_AUTHENTICATION);
         }
     };
@@ -232,12 +246,19 @@ public class ServerClient {
         @Override
         public void call(Object... args) {
             // We got an error while trying to connect
-            // The socket will try to reconnect automatically as many times we set on the options
+            // The socket will try to reconnect automatically as many times we set on the
+            // options
             String reason = "no reason received.";
             if (args.length > 0) {
                 reason = args[0].toString();
             }
             Log.e(TAG, "Error while trying to connect: " + reason);
+            Log.e(TAG, "Server address: http://" + mServerIp + ":" + mServerPort);
+            Log.e(TAG, "Please ensure:");
+            Log.e(TAG, "1. Python server is running: python ImageServer.py");
+            Log.e(TAG, "2. Server IP " + mServerIp + " is correct (check with ipconfig/ifconfig)");
+            Log.e(TAG, "3. Device and server are on the same network");
+            Log.e(TAG, "4. Firewall allows port " + mServerPort);
         }
     };
 
@@ -277,7 +298,7 @@ public class ServerClient {
         @Override
         public void call(Object... args) {
             boolean result = (boolean) args[0];
-            if(mSingleCallback != null) {
+            if (mSingleCallback != null) {
                 mainHandler.post(() -> mSingleCallback.onConnected(result));
             }
             Log.d(TAG, "onAuthentication: " + result);
@@ -287,7 +308,7 @@ public class ServerClient {
     private Emitter.Listener onResponse = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
-            Log.d(TAG, "len of args = " + args.length);
+            Log.d(TAG, "✓ Received response from server, args length = " + args.length);
             JSONObject data = (JSONObject) args[0];
             String finalResult = "";
             boolean finalIsGloss = false;
@@ -295,11 +316,14 @@ public class ServerClient {
             try {
                 if (data.has("result")) {
                     finalResult = data.getString("result");
+                    Log.d(TAG, "Result: " + finalResult);
                 }
                 if (data.has("isGloss")) {
                     finalIsGloss = data.getBoolean("isGloss");
+                    Log.d(TAG, "IsGloss: " + finalIsGloss);
                 }
             } catch (JSONException e) {
+                Log.e(TAG, "Error parsing response JSON: " + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -308,18 +332,20 @@ public class ServerClient {
             final boolean isGlossForLambda = finalIsGloss;
 
             if (mSingleCallback != null) {
+                Log.d(TAG, "Calling displayResponse callback with: " + resultForLambda);
                 mainHandler.post(() -> mSingleCallback.displayResponse(resultForLambda, isGlossForLambda));
+            } else {
+                Log.e(TAG, "No callback registered to display response!");
             }
 
-            Log.d(TAG, "onResponse: " + resultForLambda);
+            Log.d(TAG, "onResponse completed: " + resultForLambda);
         }
     };
-
 
     private Emitter.Listener onTranscriptGenerated = new Emitter.Listener() {
         @Override
         public void call(Object... args) {
-            String result = (String)args[0];
+            String result = (String) args[0];
             if (mSingleCallback != null)
                 mainHandler.post(() -> mSingleCallback.addNewTranscript(result));
             Log.d(TAG, "onTranscriptGenerated: " + result);

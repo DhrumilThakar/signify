@@ -126,24 +126,35 @@ def authenticate(sid, username, password, clientCallbackEvent):
 # received in python as Bytes.
 @sio.event
 def receiveImage(sid, imageBytes, clientCallBackEvent):
-	# gloss = cv_model.run_model_frame_batches_filter(imageBytes)
-	# real_text = gloss_to_english2(False)
-
-	# gloss = cv_model.run_model_frame_batches(imageBytes)
-	# real_text = gloss_to_english(False)
-
+	print(f"[DEBUG] Received image from {sid}: {len(imageBytes)} bytes")
+	
 	gloss = cv_model.run_model_dup_check(imageBytes)
 	real_text = gloss_to_english2(False)
-
-	if gloss != "nothing":
-		if (len(real_text) == 0):
-			data = {'result': gloss, 'isGloss': True}
+	
+	print(f"[DEBUG] Gloss result: '{gloss}', Real text: '{real_text}'")
+	print(f"[DEBUG] Current sentence: {cv_model.sentence}")
+	
+	# Send if we got a new word prediction
+	if gloss != "nothing" and gloss != "NoSign":
+		data = {'result': gloss, 'isGloss': True}
+		sio.emit(clientCallBackEvent, data)
+		print(f"[SENT] Gloss result: {gloss}")
+	
+	# Send real text if NLP generated a sentence
+	elif len(real_text) > 0:
+		data = {'result': real_text, 'isGloss': False}
+		sio.emit(clientCallBackEvent, data)
+		print(f"[SENT] Real text: {real_text}")
+	
+	# Send accumulated sentence if we have words but no new prediction
+	elif len(cv_model.sentence) > 0:
+		# Send the last detected word
+		last_word = cv_model.sentence[-1]
+		if last_word != "NoSign":
+			data = {'result': last_word, 'isGloss': True}
 			sio.emit(clientCallBackEvent, data)
-			print("gloss result:", gloss)
-		else:
-			data = {'result': real_text, 'isGloss': False}
-			sio.emit(clientCallBackEvent, data)
-			print("real result:", real_text)
+			print(f"[SENT] Last word: {last_word}")
+	
 	if(isDisplay):
 		displayImage(activeSessions[sid], bytes(imageBytes))
 

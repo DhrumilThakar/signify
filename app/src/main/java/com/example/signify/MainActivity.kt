@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     lateinit var viewBinding: ActivityMainBinding
     private lateinit var cameraExecutor: ExecutorService
 
-    private var url : String = "http://10.194.160.24:5000/sendImg"
+    private var url : String = "http://10.194.160.24:8088/sendImg"
 //    private var url : String = "http://synaera-api.centralindia.cloudapp.azure.com:5000/sendImg"
 
     private var translationOngoing : Boolean = false
@@ -512,6 +512,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
 
     private fun startStreaming() {
         mIsStreaming = true
+        Log.d(TAG, "▶ Starting video streaming...")
         runOnUiThread {
             viewBinding.textView.text = ""
             viewBinding.textView.visibility = View.INVISIBLE
@@ -537,6 +538,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
                                         bmpScaled
                                     }
                                 val byteArray = ImageConverter.BitmaptoJPEG(finalBitmap)
+                                Log.d(TAG, "Sending frame: ${byteArray.size} bytes")
                                 mServer.sendImage(byteArray)
                             }
                         }
@@ -555,6 +557,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     }
 
     private fun stopStreaming() {
+        Log.d(TAG, "■ Stopping video streaming and requesting prediction...")
         mIsStreaming = false
         mServer.getPrediction()
     }
@@ -571,24 +574,45 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     }
 
     override fun displayResponse(result: String, isGloss: Boolean) {
+        Log.d(TAG, "==========================================")
+        Log.d(TAG, "displayResponse CALLED! result: '$result', isGloss: $isGloss")
+        Log.d(TAG, "Current thread: ${Thread.currentThread().name}")
+        Log.d(TAG, "==========================================")
         runOnUiThread {
+            // ALWAYS show a toast so user knows something happened
+            Toast.makeText(this, "DETECTED: $result", Toast.LENGTH_SHORT).show()
+            
             Log.d(TAG, "displayResponse in main act: $result")
+            Log.d(TAG, "Setting textView visibility to VISIBLE")
+            
+            // Add to chat fragment ALWAYS
+            try {
+                chatFragment.addItem(ChatBubble(result, true))
+                Log.d(TAG, "Added to chat: $result")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding to chat: ${e.message}")
+            }
+            
+            // Show on camera screen
             viewBinding.textView.visibility = View.VISIBLE
             if (isGloss) {
                 if (viewBinding.textView.text.length < 40 && !isRealText) {
                     viewBinding.textView.append(" $result")
+                    Log.d(TAG, "Appended to textView: ${viewBinding.textView.text}")
                     speakOut(result)
                 } else {
                     viewBinding.textView.text = result
+                    Log.d(TAG, "Set textView text to: $result")
                     speakOut(result)
                 }
                 isRealText = false
             } else {
-                chatFragment.addItem(ChatBubble(result, true))
                 viewBinding.textView.text = result
+                Log.d(TAG, "Set textView text (real): $result")
                 speakOut(result)
                 isRealText = true
             }
+            Log.d(TAG, "displayResponse completed. TextView content: '${viewBinding.textView.text}', visibility: ${viewBinding.textView.visibility}")
         }
     }
 

@@ -72,9 +72,9 @@ dependencies {
     implementation "androidx.camera:camera-view:${camerax_version}"
     implementation "androidx.camera:camera-extensions:${camerax_version}"
 
-    // Socket.IO Client: Updated to a recent version
-    // Check for the latest from: https://github.com/socketio/socket.io-client-java
-    implementation ('io.socket:socket.io-client:2.1.0') {
+    // Socket.IO Client: Downgraded to v1.x for compatibility with python-socketio 4.6.0
+    // python-socketio 4.6.0 uses python-engineio 3.x which is compatible with Socket.IO client 1.x-2.x
+    implementation ('io.socket:socket.io-client:1.0.0') {
         // excluding org.json which is provided by Android
         exclude group: 'org.json', module: 'json'
     }
