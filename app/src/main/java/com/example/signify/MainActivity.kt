@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
     lateinit var viewBinding: ActivityMainBinding
     private lateinit var cameraExecutor: ExecutorService
 
-//    private var url : String = "http://192.168.1.16:5000/sendImg"
+    private var url : String = "http://10.194.160.24:5000/sendImg"
 //    private var url : String = "http://synaera-api.centralindia.cloudapp.azure.com:5000/sendImg"
 
     private var translationOngoing : Boolean = false
@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity(), ServerResultCallback, IVideoFrameExtra
         setContentView(viewBinding.root)
 
         mServer = ServerClient.getInstance()
-        mServer.init("user", "pass", "20.193.159.90", 5000)
+        mServer.init("user", "pass", "10.194.160.24", 8088)
         mServer.connect()
 
 //        mCameraPreview2 = viewBinding.viewFinder2

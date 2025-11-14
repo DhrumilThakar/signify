@@ -17,7 +17,7 @@ app = socketio.WSGIApp(sio)
 
 # Default server IP and server Port
 # FIX: 'ip' is no longer needed, as we will always use '0.0.0.0'
-port = 5000
+port = 8088
 
 # Display the image on a OpenCV window
 isDisplay = False
@@ -264,4 +264,4 @@ if __name__ == '__main__':
 	# executeCommandArgs(sys.argv)
 
 	# The server now reliably starts on the correct address and port.
-	eventlet.wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
+	eventlet.wsgi.server(eventlet.listen(('0.0.0.0', 8088)), app)

@@ -24,10 +24,10 @@ public class ServerClient {
     // --- START OF CHANGES ---
 
     // 1. Set a placeholder for your computer's IP. Find this using 'ipconfig' in your PC's terminal.
-    private String mServerIp = "10.0.2.2";
+    private String mServerIp = "10.194.160.24";
 
     // 2. Set the correct port to match your Python server.
-    private int mServerPort = 5000;
+    private int mServerPort = 8088;
 
     // --- END OF CHANGES ---
 
