@@ -96,3 +96,6 @@ Hosted on an **Azure VM**, but also supports local execution.
 - Cloud-hosted model inference  
 - Scalable server architecture  
 
+---
+
+UI/UX. Model Credit: Synaera-TeamSemaphore
